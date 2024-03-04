@@ -15,6 +15,7 @@ export const app = new Frog<GameState>({
     outcome: Outcome.DRAW,
     userMove: "rock",
     aiMove: "rock,",
+    seed: randomInt(0, 10)
   },
 });
 
@@ -23,13 +24,15 @@ interface GameState {
   userMove: string;
   aiMove: string;
   outcome: Outcome;
+  seed: number;
 }
 
 const getPlayOutcome = (
-  userMove: string
+  userMove: string,
+  prevRandom: number,
 ): { outcome: Outcome; aiMove: string } => {
   const returns = ["rock", "paper", "scissors"];
-  const aiSelection = returns[randomInt(0, returns.length - 1)];
+  const aiSelection = returns[prevRandom % 3];
   let outcome: Outcome = Outcome.DRAW;
 
   if (aiSelection === "scissors") {
@@ -114,12 +117,13 @@ app.frame("/play", (c) => {
     if (fid !== undefined) {
       // User move
       const userMove = buttonValue || "rock";
-      const { outcome, aiMove } = getPlayOutcome(userMove);
+      const { outcome, aiMove } = getPlayOutcome(userMove, previousState.seed);
 
       if (outcome === Outcome.WIN) {
         previousState.score++;
       }
 
+      previousState.seed = randomInt(0, 100)
       previousState.aiMove = aiMove;
       previousState.userMove = userMove;
       previousState.outcome = outcome;
@@ -168,7 +172,13 @@ app.frame("/play", (c) => {
 });
 
 app.frame("/", (c) => {
-  const { buttonValue, inputText, status } = c;
+  const { deriveState, buttonValue, inputText, status } = c;
+
+  deriveState(prevState => {
+    prevState.seed = randomInt(0, 1000)
+    prevState.score = 0
+  })
+
   return c.res({
     image: (
       <div
